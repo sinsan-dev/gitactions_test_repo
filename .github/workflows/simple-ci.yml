@@ -1,0 +1,16 @@
+name: Simple CI Demo
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run echo on EC2
+        run: echo "Hello from EC2 GitHub Actions Runner!"
