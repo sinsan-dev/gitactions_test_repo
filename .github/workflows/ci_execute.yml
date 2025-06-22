@@ -31,7 +31,11 @@ jobs:
         run: ./build/hello_cpp
 
       - name: "Step8: Bazelビルド（hello_bazel）"
-        run: bazel build //main:hello_bazel
+        run: |
+          cd bazel_sample
+          bazel build //main:hello_bazel
 
       - name: "Step9: Bazel成果物を確認"
-        run: ./bazel-bin/main/hello_bazel
+        run: |
+          cd bazel_sample
+          ./bazel-bin/main/hello_bazel
