@@ -39,8 +39,7 @@ jobs:
         run: |
           cd bazel_sample
           ./bazel-bin/main/hello_bazel
-
-      - name: "Step10: Bazelでテスト実行（hello_test）"
+      - name: "Step10: Bazelでテスト実行"
         run: |
           cd bazel_sample
-          bazel test //main:hello_test
+          bazel test --noenable_bzlmod //main:hello_test
