@@ -42,4 +42,5 @@ jobs:
       - name: "Step10: Bazelでテスト実行"
         run: |
           cd bazel_sample
-          bazel test --noenable_bzlmod //main:hello_test
+          bazel test --enable_workspace //main:hello_test
+
