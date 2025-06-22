@@ -9,6 +9,11 @@ TEST(ClassifyNumberTest, Zero) {
     EXPECT_EQ(classify_number(0), 0);
 }
 
+//
+//TEST(ClassifyNumberTest, Negative) {
+//    EXPECT_EQ(classify_number(-5), -1);
+//}
+
 TEST(ClassifyNumberTest, Negative) {
-    EXPECT_EQ(classify_number(-5), -1);
+    EXPECT_EQ(classify_number(-5), 0);  // ← 故意に間違える
 }
