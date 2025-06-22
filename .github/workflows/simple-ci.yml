@@ -1,4 +1,4 @@
-name: Simple CI Demo
+name: Run Shell Script Demo
 
 on:
   push:
@@ -12,5 +12,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run echo on EC2
-        run: echo "Hello from EC2 GitHub Actions Runner!"
+      - name: Run shell script
+        run: ./scripts/test.sh
