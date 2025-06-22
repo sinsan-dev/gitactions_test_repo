@@ -35,7 +35,12 @@ jobs:
           cd bazel_sample
           bazel build //main:hello_bazel
 
-      - name: "Step9: Bazel成果物を確認"
+      - name: "Step9: Bazel成果物を実行"
         run: |
           cd bazel_sample
           ./bazel-bin/main/hello_bazel
+
+      - name: "Step10: Bazelでテスト実行（hello_test）"
+        run: |
+          cd bazel_sample
+          bazel test //main:hello_test
