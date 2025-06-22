@@ -6,5 +6,5 @@ http_archive(
     name = "com_google_googletest",
     urls = ["https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip"],
     strip_prefix = "googletest-1.14.0",
-    sha256 = "1f357c72ca988c3f7c6b4f68a3995005ac67f613f404496de0d896e3aba042b8",  # ← 新しい値
+    sha256 = "1f357c72ca988c3f7c6b4bf68a3995005ac6761f304046e9dde0896e3aba042b8",
 )
