@@ -50,6 +50,7 @@ jobs:
         if: success()
         run: |
           mkdir -p ~/deploy_area
+          rm -f ~/deploy_area/hello
           cp bazel_sample/bazel-bin/main/hello ~/deploy_area/
           echo "✅ 成果物を ~/deploy_area にコピー完了しました"
 
