@@ -1,19 +1,14 @@
 #include "hello.h"
 #include <gtest/gtest.h>
 
-TEST(ClassifyNumberTest, Positive) {
+TEST(分類テスト, テスト1_正の値) {
     EXPECT_EQ(classify_number(10), 1);
 }
 
-TEST(ClassifyNumberTest, Zero) {
+TEST(分類テスト, テスト2_ゼロ) {
     EXPECT_EQ(classify_number(0), 0);
 }
 
-//
-//TEST(ClassifyNumberTest, Negative) {
-//    EXPECT_EQ(classify_number(-5), -1);
-//}
-
-TEST(ClassifyNumberTest, Negative) {
-    EXPECT_EQ(classify_number(-5), 0);  // ← 故意に間違える
+TEST(分類テスト, テスト3_負の値) {
+    EXPECT_EQ(classify_number(-5), 0);  // ← 故意に失敗
 }
