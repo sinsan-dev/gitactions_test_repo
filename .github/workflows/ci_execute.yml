@@ -39,6 +39,12 @@ jobs:
         run: |
           cd bazel_sample
           ./bazel-bin/main/hello_bazel
+
+      - name: "Step9.5: Bazelキャッシュをクリーン"
+        run: |
+          cd bazel_sample
+          bazel clean
+                    
       - name: "Step10: Bazelでテスト実行"
         run: |
           cd bazel_sample
