@@ -14,5 +14,5 @@ TEST(分類テスト, テスト2_ゼロ) {
 
 TEST(分類テスト, テスト3_負の値) {
     std::cout << "★ TEST 3 実行中" << std::endl;
-    EXPECT_EQ(classify_number(-5), -1);  // 故意に失敗させてもよい
+    EXPECT_EQ(classify_number(-5), 0);  // 故意に失敗させてもよい
 }
