@@ -53,17 +53,17 @@ jobs:
 
       - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
         if: success()
-        continue-on-error: true
         run: |
           cd bazel_sample
-          OUTPUT_PATH=$(bazel cquery //main:hello --output=starlark --starlark:expr="target.files.to_list()[0].path")
-          echo "🔍 成果物のパス: $OUTPUT_PATH"
-          mkdir -p ~/deploy_area
-          if [ -f "$OUTPUT_PATH" ]; then
-            cp "$OUTPUT_PATH" ~/deploy_area/
-            echo "✅ 成果物を ~/deploy_area にコピー完了しました"
+          BIN_PATH=$(bazel info bazel-bin)/main/hello
+          echo "🔍 成果物のパス: $BIN_PATH"
+          if [ -f "$BIN_PATH" ]; then
+            mkdir -p ~/deploy_area
+            cp "$BIN_PATH" ~/deploy_area/
+            echo "✅ 成果物を ~/deploy_area にコピーしました"
           else
-            echo "⚠️ 成果物ファイルが存在しませんでした"
+            echo "⚠️ 成果物ファイルが存在しませんでした: $BIN_PATH"
+            exit 1
           fi
 
       - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
