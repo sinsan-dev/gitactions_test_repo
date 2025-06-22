@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: home-ubuntu
+    runs-on: [self-hosted, home-ubuntu]
 
     steps:
       - name: "Step1: リポジトリをチェックアウト"
