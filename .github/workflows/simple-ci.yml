@@ -1,4 +1,4 @@
-name: Run Shell Script Demo
+name: シェル実行してCをビルドする
 
 on:
   push:
@@ -9,8 +9,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
 
-      - name: Run shell script
+      - name: シェルスクリプト実行（前段）
         run: ./scripts/test.sh
+
+      - name: ビルドディレクトリ準備
+        run: mkdir -p build
+
+      - name: Cコードをビルド（後段）
+        run: gcc -o build/hello src/hello.c
+
+      - name: ビルド成果物を実行
+        run: ./build/hello
