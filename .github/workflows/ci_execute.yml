@@ -45,7 +45,7 @@ jobs:
           cd bazel_sample
           bazel clean
 
-      - name: "Step10: Bazelでテスト実行（ログ出力付き）"
+      - name: "Step10: Bazelでテスト実行"
         id: bazel_test_result
         run: |
           cd bazel_sample
@@ -53,10 +53,18 @@ jobs:
 
       - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
         if: success()
+        continue-on-error: true
         run: |
+          cd bazel_sample
+          OUTPUT_PATH=$(bazel cquery //main:hello --output=starlark --starlark:expr="target.files.to_list()[0].path")
+          echo "🔍 成果物のパス: $OUTPUT_PATH"
           mkdir -p ~/deploy_area
-          cp bazel_sample/bazel-bin/main/hello ~/deploy_area/
-          echo "✅ 成果物を ~/deploy_area にコピー完了しました"
+          if [ -f "$OUTPUT_PATH" ]; then
+            cp "$OUTPUT_PATH" ~/deploy_area/
+            echo "✅ 成果物を ~/deploy_area にコピー完了しました"
+          else
+            echo "⚠️ 成果物ファイルが存在しませんでした"
+          fi
 
       - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
         if: failure()
