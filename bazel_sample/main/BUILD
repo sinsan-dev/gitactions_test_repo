@@ -6,8 +6,8 @@ cc_library(
 )
 
 cc_binary(
-    name = "hello_bazel",
-    srcs = ["main.cc"],  # ← main関数はここ
+    name = "hello",
+    srcs = ["main.cc"],
     deps = [":hello_lib"],
 )
 
