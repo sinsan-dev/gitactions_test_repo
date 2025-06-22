@@ -40,11 +40,6 @@ jobs:
           cd bazel_sample
           ./bazel-bin/main/hello
 
-      - name: "Step9.5: Bazelキャッシュをクリーン"
-        run: |
-          cd bazel_sample
-          bazel clean
-
       - name: "Step10: Bazelでテスト実行"
         id: bazel_test_result
         run: |
@@ -54,18 +49,15 @@ jobs:
       - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
         if: success()
         run: |
-          cd bazel_sample
-          BIN_PATH=$(bazel info bazel-bin)/main/hello
-          echo "🔍 成果物のパス: $BIN_PATH"
-          if [ -f "$BIN_PATH" ]; then
-            mkdir -p ~/deploy_area
-            cp "$BIN_PATH" ~/deploy_area/
-            echo "✅ 成果物を ~/deploy_area にコピーしました"
-          else
-            echo "⚠️ 成果物ファイルが存在しませんでした: $BIN_PATH"
-            exit 1
-          fi
+          mkdir -p ~/deploy_area
+          cp bazel_sample/bazel-bin/main/hello ~/deploy_area/
+          echo "✅ 成果物を ~/deploy_area にコピー完了しました"
 
       - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
         if: failure()
         run: echo "❌ テストが失敗したため、デプロイはスキップされました"
+
+      - name: "Step12: Bazelキャッシュをクリーン（最後に）"
+        run: |
+          cd bazel_sample
+          bazel clean
