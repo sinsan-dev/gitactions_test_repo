@@ -1,13 +1,10 @@
 // hello.cc
-#include <iostream>
+#include "hello.h"
 
-int classify_number(int x) {
-    if (x > 0) return 1;
-    if (x == 0) return 0;
-    return -1;
+int classify_number(int value) {
+    if (value > 0) return 1;
+    else if (value == 0) return 0;
+    else return -1;
 }
 
-int main() {
-    std::cout << "Hello from Bazel!" << std::endl;
-    return 0;
-}
+// main() は書かないこと！！
