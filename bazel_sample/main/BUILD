@@ -7,7 +7,7 @@ cc_library(
 
 cc_binary(
     name = "hello_bazel",
-    srcs = ["main.cc"],  # main関数があるなら別ファイルに分ける
+    srcs = ["main.cc"],  # ← main関数はここ
     deps = [":hello_lib"],
 )
 
