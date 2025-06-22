@@ -1,0 +1,31 @@
+name: 01-CとC++ビルドCI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: "Step1: リポジトリをチェックアウト"
+        uses: actions/checkout@v4
+
+      - name: "Step2: シェルスクリプトを実行（test.sh）"
+        run: ./scripts/test.sh
+
+      - name: "Step3: ビルドディレクトリ作成"
+        run: mkdir -p build
+
+      - name: "Step4: Cコードをビルド（hello.c）"
+        run: gcc -o build/hello src/hello.c
+
+      - name: "Step5: C成果物を実行"
+        run: ./build/hello
+
+      - name: "Step6: C++コードをビルド（hello.cpp）"
+        run: g++ -o build/hello_cpp src/hello.cpp
+
+      - name: "Step7: C++成果物を実行"
+        run: ./build/hello_cpp
