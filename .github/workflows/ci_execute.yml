@@ -73,7 +73,7 @@ jobs:
             build/hello_cpp
             deploy_area/hello
 
-      - name: "Step3: 完了メッセージ"
+      - name: "Step3: 完了メッセージ!"
         run: |
           echo "::group::🚀 完了メッセージ"
           echo "🎉 全ビルドとテストが完了しました。アーティファクトも保存済みです。"
