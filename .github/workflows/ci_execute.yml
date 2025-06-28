@@ -1,4 +1,4 @@
-name: 01-CとC++ビルドCI (Docker版)
+name: 01-CとC++ビルドCI (Docker手動起動版)
 
 on:
   push:
@@ -7,89 +7,65 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, home-runner]
-    container:
-      image: ghcr.io/sinsan0209/devops-ci-image:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: "Step0: 環境の確認"
-        run: |
-          echo "::group::🧭 OS情報"
-          uname -a
-          cat /etc/os-release
-          echo "::endgroup::"
-
-          echo "::group::🛠️ ツールバージョン"
-          gcc --version
-          g++ --version
-          bazel --version
-          echo "::endgroup::"
-
       - name: "Step1: リポジトリをチェックアウト"
         uses: actions/checkout@v4
 
-      - name: "Step2: シェルスクリプトを実行（test.sh）"
-        run: ./scripts/test.sh
-
-      - name: "Step3: ビルドディレクトリ作成"
-        run: mkdir -p build
-
-      - name: "Step4: Cコードをビルド（hello.c）"
-        run: gcc -o build/hello src/hello.c
-
-      - name: "Step5: C成果物を実行"
-        run: ./build/hello
-
-      - name: "Step6: C++コードをビルド（hello.cpp）"
-        run: g++ -o build/hello_cpp src/hello.cpp
-
-      - name: "Step7: C++成果物を実行"
-        run: ./build/hello_cpp
-
-      - name: "Step8: Bazelビルド（hello）"
+      - name: "Step2: Dockerコンテナ内でビルド一式を実行"
         run: |
-          cd bazel_sample
-          bazel build //main:hello
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ghcr.io/sinsan0209/devops-ci-image:latest \
+            bash -c '
+              echo "::group::🧭 OS情報"
+              uname -a
+              cat /etc/os-release
+              echo "::endgroup::"
 
-      - name: "Step9: Bazel成果物を実行"
-        run: |
-          cd bazel_sample
-          ./bazel-bin/main/hello
+              echo "::group::🛠️ ツールバージョン"
+              gcc --version
+              g++ --version
+              bazel --version
+              echo "::endgroup::"
 
-      - name: "Step10: Bazelでテスト実行"
-        run: |
-          cd bazel_sample
-          bazel test --test_output=all //main:hello_test
+              ./scripts/test.sh
 
-      - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
-        if: success()
-        run: |
-          mkdir -p /root/deploy_area
-          rm -f /root/deploy_area/hello
-          cp bazel_sample/bazel-bin/main/hello /root/deploy_area/
-          echo "✅ 成果物を /root/deploy_area にコピー完了しました"
+              mkdir -p build
 
-      - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
-        if: failure()
-        run: echo "❌ テストが失敗したため、デプロイはスキップされました"
+              gcc -o build/hello src/hello.c
+              ./build/hello
 
-      - name: "Step12: Bazelキャッシュをクリーン（最後に）"
-        run: |
-          cd bazel_sample
-          bazel clean
+              g++ -o build/hello_cpp src/hello.cpp
+              ./build/hello_cpp
 
-      - name: "Step13: 成果物をアーティファクトとして保存"
+              cd bazel_sample
+              bazel build //main:hello
+              ./bazel-bin/main/hello
+              bazel test --test_output=all //main:hello_test
+
+              if [ $? -eq 0 ]; then
+                mkdir -p /workspace/deploy_area
+                cp bazel-bin/main/hello /workspace/deploy_area/
+                echo "✅ 成果物を deploy_area にコピー完了"
+              else
+                echo "❌ テスト失敗、デプロイスキップ"
+              fi
+
+              bazel clean
+            '
+
+      - name: "Step3: 成果物をアーティファクトとして保存"
         uses: actions/upload-artifact@v4
         with:
           name: built-hello-binaries
           path: |
             build/hello
             build/hello_cpp
-            bazel_sample/bazel-bin/main/hello
+            deploy_area/hello
 
-      - name: "Step14: 完了メッセージ"
+      - name: "Step4: 完了メッセージ"
         run: |
           echo "::group::🚀 完了メッセージ"
           echo "🎉 全ビルドとテストが完了しました。アーティファクトも保存済みです。"
