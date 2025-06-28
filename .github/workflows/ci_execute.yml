@@ -1,4 +1,4 @@
-name: 01-CとC++ビルドCI (Docker手動起動版)
+name: 01-CとC++ビルドCI (Docker版 自ホスト実行)
 
 on:
   push:
@@ -9,13 +9,14 @@ jobs:
     runs-on: [self-hosted, home-runner]
 
     steps:
-      - name: "Step1: リポジトリをチェックアウト"
+      - name: "Step0: リポジトリをチェックアウト"
         uses: actions/checkout@v4
 
-      - name: "Step2: Dockerコンテナ内でビルド一式を実行"
+      - name: "Step1: Dockerコンテナ内でビルド一式を実行"
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
+            -u $(id -u):$(id -g) \
+            -v $PWD:/workspace \
             -w /workspace \
             ghcr.io/sinsan0209/devops-ci-image:latest \
             bash -c '
@@ -30,33 +31,40 @@ jobs:
               bazel --version
               echo "::endgroup::"
 
+              echo "▶️ シェルスクリプト実行"
               ./scripts/test.sh
 
+              echo "▶️ ビルドディレクトリ作成"
               mkdir -p build
 
+              echo "▶️ Cビルド"
               gcc -o build/hello src/hello.c
+
+              echo "▶️ C実行"
               ./build/hello
 
+              echo "▶️ C++ビルド"
               g++ -o build/hello_cpp src/hello.cpp
+
+              echo "▶️ C++実行"
               ./build/hello_cpp
 
+              echo "▶️ Bazelビルド"
               cd bazel_sample
               bazel build //main:hello
+
+              echo "▶️ Bazel成果物を実行"
               ./bazel-bin/main/hello
+
+              echo "▶️ Bazelテスト"
               bazel test --test_output=all //main:hello_test
 
-              if [ $? -eq 0 ]; then
-                mkdir -p /workspace/deploy_area
-                cp bazel-bin/main/hello /workspace/deploy_area/
-                echo "✅ 成果物を deploy_area にコピー完了"
-              else
-                echo "❌ テスト失敗、デプロイスキップ"
-              fi
-
-              bazel clean
+              echo "✅ 成果物をデプロイ"
+              mkdir -p /workspace/deploy_area
+              cp bazel-bin/main/hello /workspace/deploy_area/
             '
 
-      - name: "Step3: 成果物をアーティファクトとして保存"
+      - name: "Step2: 成果物をアーティファクトとして保存"
         uses: actions/upload-artifact@v4
         with:
           name: built-hello-binaries
@@ -65,7 +73,7 @@ jobs:
             build/hello_cpp
             deploy_area/hello
 
-      - name: "Step4: 完了メッセージ"
+      - name: "Step3: 完了メッセージ"
         run: |
           echo "::group::🚀 完了メッセージ"
           echo "🎉 全ビルドとテストが完了しました。アーティファクトも保存済みです。"
