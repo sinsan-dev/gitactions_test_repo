@@ -10,7 +10,6 @@ jobs:
     runs-on: [self-hosted, home-runner]
     container:
       image: ghcr.io/sinsan0209/devops-ci-image:latest
-      options: --user root
 
     steps:
       - name: "Step0: 環境の確認"
