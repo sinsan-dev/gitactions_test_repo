@@ -1,4 +1,3 @@
-
 name: 01-CとC++ビルドCI (Docker版)
 
 on:
