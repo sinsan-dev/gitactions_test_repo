@@ -1,4 +1,5 @@
-name: 01-CとC++ビルドCI
+
+name: 01-CとC++ビルドCI (Docker版)
 
 on:
   push:
@@ -7,8 +8,24 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, home-runner]
+    container:
+      image: ghcr.io/sinsan0209/devops-ci-image:latest
+      options: --user root
 
     steps:
+      - name: "Step0: 環境の確認"
+        run: |
+          echo "::group::🧭 OS情報"
+          uname -a
+          cat /etc/os-release
+          echo "::endgroup::"
+
+          echo "::group::🛠️ ツールバージョン"
+          gcc --version
+          g++ --version
+          bazel --version
+          echo "::endgroup::"
+
       - name: "Step1: リポジトリをチェックアウト"
         uses: actions/checkout@v4
 
@@ -41,7 +58,6 @@ jobs:
           ./bazel-bin/main/hello
 
       - name: "Step10: Bazelでテスト実行"
-        id: bazel_test_result
         run: |
           cd bazel_sample
           bazel test --test_output=all //main:hello_test
@@ -49,10 +65,10 @@ jobs:
       - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
         if: success()
         run: |
-          mkdir -p ~/deploy_area
-          rm -f ~/deploy_area/hello
-          cp bazel_sample/bazel-bin/main/hello ~/deploy_area/
-          echo "✅ 成果物を ~/deploy_area にコピー完了しました"
+          mkdir -p /root/deploy_area
+          rm -f /root/deploy_area/hello
+          cp bazel_sample/bazel-bin/main/hello /root/deploy_area/
+          echo "✅ 成果物を /root/deploy_area にコピー完了しました"
 
       - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
         if: failure()
@@ -62,3 +78,18 @@ jobs:
         run: |
           cd bazel_sample
           bazel clean
+
+      - name: "Step13: 成果物をアーティファクトとして保存"
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-hello-binaries
+          path: |
+            build/hello
+            build/hello_cpp
+            bazel_sample/bazel-bin/main/hello
+
+      - name: "Step14: 完了メッセージ"
+        run: |
+          echo "::group::🚀 完了メッセージ"
+          echo "🎉 全ビルドとテストが完了しました。アーティファクトも保存済みです。"
+          echo "::endgroup::"
