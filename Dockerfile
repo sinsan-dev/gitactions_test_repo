@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 必要なツール群をインストール（gcc, g++, bazel など ）
+# 必要なツール群をインストール（gcc, g++, bazel など）
 RUN apt-get update && \
     apt-get install -y \
     build-essential \
