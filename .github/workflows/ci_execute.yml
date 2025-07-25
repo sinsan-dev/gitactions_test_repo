@@ -7,11 +7,11 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, wsl, devops]
-    container:
-      image: ghcr.io/sinsan0209/devops-ci-image:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    #container:
+    #  image: ghcr.io/sinsan0209/devops-ci-image:latest
+    #  credentials:
+    #    username: ${{ github.actor }}
+    #    password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: "Step0: 環境の確認"
