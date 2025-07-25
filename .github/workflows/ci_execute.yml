@@ -69,9 +69,9 @@ jobs:
       - name: "Step11: 成果物をデプロイ（もどき）※テスト成功時のみ"
         if: success()
         run: |
-          mkdir -p /root/deploy_area
-          rm -f /root/deploy_area/hello
-          cp bazel_sample/bazel-bin/main/hello /root/deploy_area/
+          mkdir -p $HOME/deploy_area
+          rm -f $HOME/deploy_area/hello
+          cp bazel_sample/bazel-bin/main/hello $HOME/deploy_area/
           echo "✅ 成果物を /root/deploy_area にコピー完了しました"
 
       - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
