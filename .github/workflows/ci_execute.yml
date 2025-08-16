@@ -28,7 +28,7 @@ jobs:
           bazel --version
           echo "::endgroup::"
 
-      - name: "Step1: リポジトリをチェックアウト"
+      - name: "Step1: リポジトリをチェックアウト!"
         uses: actions/checkout@v4
 
       - name: "Step2: シェルスクリプトを実行（test.sh）"
