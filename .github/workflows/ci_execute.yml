@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, wsl, devops]
+    runs-on: [self-hosted, ubuntu]
     container:
       image: ghcr.io/sinsan0209/devops-ci-image:latest
       credentials:
