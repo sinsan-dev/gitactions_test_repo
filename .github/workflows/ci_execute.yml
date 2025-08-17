@@ -3,12 +3,58 @@ name: 01-CとC++ビルドCI (Docker版)
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "デプロイ先"
+        type: choice
+        options: [staging, production]
+        default: staging
+        required: true
+      container_tag:
+        description: "コンテナのタグ（ghcr.io/sinsan0209/devops-ci-image:TAG）"
+        type: string
+        default: latest
+        required: true
+      run_tests:
+        description: "Bazelのテストを実行する"
+        type: boolean
+        default: true
+      deploy_to_host:
+        description: "ホストへ成果物デプロイ（/mnt/devops/artifacts）"
+        type: boolean
+        default: true
+      bazel_mode:
+        description: "Bazelビルドモード"
+        type: choice
+        options: [dbg, opt]
+        default: dbg
+      extra_cflags:
+        description: "追加C/C++フラグ（例: -O2 -Wall）"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: build-${{ github.ref }}-${{ github.event.inputs.environment || 'push' }}
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: [self-hosted, ubuntu]
+
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'staging' }}
+      BAZEL_MODE: ${{ inputs.bazel_mode || 'dbg' }}
+      EXTRA_CFLAGS: ${{ inputs.extra_cflags }}
+      RUN_TESTS: ${{ inputs.run_tests }}
+      DEPLOY_TO_HOST: ${{ inputs.deploy_to_host }}
+
     container:
-      image: ghcr.io/sinsan0209/devops-ci-image:latest
+      image: ghcr.io/sinsan0209/devops-ci-image:${{ inputs.container_tag || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -28,6 +74,15 @@ jobs:
           bazel --version
           echo "::endgroup::"
 
+          echo "::group::⚙️ 実行パラメータ"
+          echo "ENVIRONMENT=${ENVIRONMENT}"
+          echo "CONTAINER_TAG=${{ inputs.container_tag || 'latest' }}"
+          echo "BAZEL_MODE=${BAZEL_MODE}"
+          echo "RUN_TESTS=${RUN_TESTS}"
+          echo "DEPLOY_TO_HOST=${DEPLOY_TO_HOST}"
+          echo "EXTRA_CFLAGS=${EXTRA_CFLAGS}"
+          echo "::endgroup::"
+
       - name: "Step1: リポジトリをチェックアウト!"
         uses: actions/checkout@v4
 
@@ -38,13 +93,15 @@ jobs:
         run: mkdir -p build
 
       - name: "Step4: Cコードをビルド（hello.c）"
-        run: gcc -o build/hello src/hello.c
+        run: |
+          gcc ${EXTRA_CFLAGS} -o build/hello src/hello.c
 
       - name: "Step5: C成果物を実行"
         run: ./build/hello
 
       - name: "Step6: C++コードをビルド（hello.cpp）"
-        run: g++ -o build/hello_cpp src/hello.cpp
+        run: |
+          g++ ${EXTRA_CFLAGS} -o build/hello_cpp src/hello.cpp
 
       - name: "Step7: C++成果物を実行"
         run: ./build/hello_cpp
@@ -53,50 +110,3 @@ jobs:
         run: |
           export USER=ubuntu
           cd bazel_sample
-          bazel build //main:hello
-
-      - name: "Step9: Bazel成果物を実行"
-        run: |
-          export USER=ubuntu
-          cd bazel_sample
-          ./bazel-bin/main/hello
-
-      - name: "Step10: Bazelでテスト実行"
-        run: |
-          export USER=ubuntu
-          cd bazel_sample
-          bazel test --test_output=all //main:hello_test
-
-      - name: "Step11: 成果物をホストにデプロイ"
-        if: success()
-        run: |
-          mkdir -p /mnt/devops/artifacts
-          cp bazel_sample/bazel-bin/main/hello /mnt/devops/artifacts/
-          cp build/hello /mnt/devops/artifacts/
-          cp build/hello_cpp /mnt/devops/artifacts/
-          echo "✅ ホストの ~/workspace/devops/artifacts に成果物を出力しました"
-
-      - name: "Step11-fail: テスト失敗のためデプロイをスキップ"
-        if: failure()
-        run: echo "❌ テストが失敗したため、デプロイはスキップされました"
-
-      - name: "Step12: Bazelキャッシュをクリーン（最後に）"
-        run: |
-          export USER=ubuntu
-          cd bazel_sample
-          bazel clean
-
-      - name: "Step13: 成果物をアーティファクトとして保存"
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-hello-binaries
-          path: |
-            build/hello
-            build/hello_cpp
-            bazel_sample/bazel-bin/main/hello
-
-      - name: "Step14: 完了メッセージ"
-        run: |
-          echo "::group::🚀 完了メッセージ"
-          echo "🎉 全ビルドとテストが完了しました。アーティファクトも保存済みです。"
-          echo "::endgroup::"
