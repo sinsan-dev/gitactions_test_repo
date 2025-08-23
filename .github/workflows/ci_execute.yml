@@ -8,7 +8,6 @@ on:
       environment:
         description: "デプロイ先"
         type: choice
-        # ← artifact を追加
         options: [artifact, staging, production]
         default: artifact
         required: true
@@ -36,8 +35,8 @@ on:
         default: ""
       retention_days:
         description: "Artifactsの保存日数（最大90）"
-        type: number
-        default: 7
+        type: string       # ← 文字列で受けて fromJSON で数値化
+        default: "7"
 
 permissions:
   contents: read
@@ -66,7 +65,7 @@ jobs:
       options: --volume /home/ubuntu/workspace/devops:/mnt/devops
 
     steps:
-      - name: "Step0: 環境の確認"
+      - name: Step0: 環境の確認
         run: |
           echo "::group::🧭 OS情報"; uname -a; cat /etc/os-release; echo "::endgroup::"
           echo "::group::🛠️ ツールバージョン"; gcc --version; g++ --version; bazel --version || true; echo "::endgroup::"
@@ -79,61 +78,59 @@ jobs:
           echo "EXTRA_CFLAGS=${EXTRA_CFLAGS}"
           echo "::endgroup::"
 
-      - name: "Step1: リポジトリをチェックアウト"
+      - name: Step0.5: 短縮SHAを用意
+        run: echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Step1: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
-      - name: "Step2: シェルスクリプトを実行（test.sh）"
+      - name: Step2: シェルスクリプトを実行（test.sh）
         run: ./scripts/test.sh
 
-      - name: "Step3: ビルドディレクトリ作成"
+      - name: Step3: ビルドディレクトリ作成
         run: mkdir -p build
 
-      - name: "Step4: Cコードをビルド（hello.c）"
+      - name: Step4: Cコードをビルド（hello.c）
         run: gcc ${EXTRA_CFLAGS} -o build/hello src/hello.c
 
-      - name: "Step5: C成果物を実行"
+      - name: Step5: C成果物を実行
         run: ./build/hello
 
-      - name: "Step6: C++コードをビルド（hello.cpp）"
+      - name: Step6: C++コードをビルド（hello.cpp）
         run: g++ ${EXTRA_CFLAGS} -o build/hello_cpp src/hello.cpp
 
-      - name: "Step7: C++成果物を実行"
+      - name: Step7: C++成果物を実行
         run: ./build/hello_cpp
 
-      # ここに Bazel ビルド/テストが続く想定（省略）
-      # - name: "Step8: Bazelビルド（hello）"
+      # Bazel は必要になったら解放
+      # - name: Step8: Bazelビルド（hello）
       #   run: |
       #     export USER=ubuntu
       #     cd bazel_sample
       #     bazel build //:hello --compilation_mode=${BAZEL_MODE}
       #     ${{ inputs.run_tests && 'bazel test //...' || 'echo skip tests' }}
 
-      - name: "Step9: 成果物を収集（Artifacts用）"
-        # 失敗でもログ回収したいなら always()
-        if: ${{ success() || failure() }}
+      - name: Step9: 成果物を収集（Artifacts用）
+        if: ${{ always() }}
         run: |
           mkdir -p dist/logs
-          # ビルド成果物
           cp -f build/hello build/hello_cpp dist/ 2>/dev/null || true
-          # 任意: Bazel成果物やレポートも拾う（存在すれば）
           if [ -d bazel-bin ]; then tar -czf dist/bazel-bin.tgz bazel-bin; fi
           if [ -d reports ]; then cp -r reports dist/; fi
-          # ジョブログの一部サンプル（必要なら）
           echo "RUN_ID=${{ github.run_id }}" > dist/logs/meta.txt
           echo "SHA=${{ github.sha }}" >> dist/logs/meta.txt
+          echo "SHA_SHORT=${GITHUB_SHA_SHORT}" >> dist/logs/meta.txt
           echo "ENV=${ENVIRONMENT}" >> dist/logs/meta.txt
 
-      - name: "Step10: Upload Artifacts（デプロイ先: artifact）"
+      - name: Step10: Upload Artifacts（デプロイ先: artifact）
         if: ${{ env.ENVIRONMENT == 'artifact' }}
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ github.run_number }}-${{ github.sha.slice(0,7) }}
-          path: |
-            dist/**
+          name: artifact-${{ github.run_number }}-${{ env.GITHUB_SHA_SHORT }}
+          path: dist/**
           if-no-files-found: error
-          retention-days: ${{ inputs.retention_days }}
+          retention-days: ${{ fromJSON(inputs.retention_days || '7') }}
 
-      # 既存のホスト配布は無効化（ENVがstaging/production の時だけ実施したければここで分岐）
-      # - name: "Host Deploy"
-      #   if: ${{ env.ENVIRONMENT != 'artifact' && fromJSON(env.DEPLOY_TO_HOST) }}
+      # - name: Host Deploy（必要なら再有効化）
+      #   if: ${{ env.ENVIRONMENT != 'artifact' && fromJSON(env.DEPLOY_TO_HOST || 'false') }}
       #   run: rsync -av dist/ /mnt/devops/artifacts/
