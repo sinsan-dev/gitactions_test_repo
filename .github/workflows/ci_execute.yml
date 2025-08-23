@@ -1,136 +1,50 @@
-name: 01-CとC++ビルドCI (Docker版)
+name: "C/C++ build → Artifact (container minimal)"
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "デプロイ先"
-        type: choice
-        options: [artifact, staging, production]
-        default: artifact
-        required: true
-      container_tag:
-        description: "コンテナのタグ（ghcr.io/sinsan0209/devops-ci-image:TAG）"
-        type: string
-        default: latest
-        required: true
-      run_tests:
-        description: "Bazelのテストを実行する"
-        type: boolean
-        default: true
-      deploy_to_host:
-        description: "ホストへ成果物デプロイ（/mnt/devops/artifacts）"
-        type: boolean
-        default: false
-      bazel_mode:
-        description: "Bazelビルドモード"
-        type: choice
-        options: [dbg, opt]
-        default: dbg
-      extra_cflags:
-        description: "追加C/C++フラグ（例: -O2 -Wall）"
-        type: string
-        default: ""
-      retention_days:
-        description: "Artifactsの保存日数（最大90）"
-        type: string       # ← 文字列で受けて fromJSON で数値化
-        default: "7"
+    branches: [ "main" ]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
   packages: read
 
-concurrency:
-  group: build-${{ github.ref }}-${{ github.event.inputs.environment || 'push' }}
-  cancel-in-progress: false
-
 jobs:
   build:
-    runs-on: [self-hosted, ubuntu]
-
-    env:
-      ENVIRONMENT: ${{ inputs.environment || 'artifact' }}
-      BAZEL_MODE: ${{ inputs.bazel_mode || 'dbg' }}
-      EXTRA_CFLAGS: ${{ inputs.extra_cflags }}
-      RUN_TESTS: ${{ inputs.run_tests }}
-      DEPLOY_TO_HOST: ${{ inputs.deploy_to_host }}
+    runs-on: [ "self-hosted", "ubuntu" ]
 
     container:
-      image: ghcr.io/sinsan0209/devops-ci-image:${{ inputs.container_tag || 'latest' }}
+      image: ghcr.io/sinsan0209/devops-ci-image:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --volume /home/ubuntu/workspace/devops:/mnt/devops
+      options: "--volume /home/ubuntu/workspace/devops:/mnt/devops"
 
     steps:
-      - name: Step0: 環境の確認
-        run: |
-          echo "::group::🧭 OS情報"; uname -a; cat /etc/os-release; echo "::endgroup::"
-          echo "::group::🛠️ ツールバージョン"; gcc --version; g++ --version; bazel --version || true; echo "::endgroup::"
-          echo "::group::⚙️ 実行パラメータ"
-          echo "ENVIRONMENT=${ENVIRONMENT}"
-          echo "CONTAINER_TAG=${{ inputs.container_tag || 'latest' }}"
-          echo "BAZEL_MODE=${BAZEL_MODE}"
-          echo "RUN_TESTS=${RUN_TESTS}"
-          echo "DEPLOY_TO_HOST=${DEPLOY_TO_HOST}"
-          echo "EXTRA_CFLAGS=${EXTRA_CFLAGS}"
-          echo "::endgroup::"
-
-      - name: Step0.5: 短縮SHAを用意
-        run: echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-      - name: Step1: リポジトリをチェックアウト
+      - name: "Checkout"
         uses: actions/checkout@v4
 
-      - name: Step2: シェルスクリプトを実行（test.sh）
-        run: ./scripts/test.sh
+      - name: "Build (C/C++)"
+        run: |
+          mkdir -p build
+          gcc -o build/hello src/hello.c
+          g++ -o build/hello_cpp src/hello.cpp
 
-      - name: Step3: ビルドディレクトリ作成
-        run: mkdir -p build
+      - name: "Run binaries"
+        run: |
+          ./build/hello
+          ./build/hello_cpp
 
-      - name: Step4: Cコードをビルド（hello.c）
-        run: gcc ${EXTRA_CFLAGS} -o build/hello src/hello.c
-
-      - name: Step5: C成果物を実行
-        run: ./build/hello
-
-      - name: Step6: C++コードをビルド（hello.cpp）
-        run: g++ ${EXTRA_CFLAGS} -o build/hello_cpp src/hello.cpp
-
-      - name: Step7: C++成果物を実行
-        run: ./build/hello_cpp
-
-      # Bazel は必要になったら解放
-      # - name: Step8: Bazelビルド（hello）
-      #   run: |
-      #     export USER=ubuntu
-      #     cd bazel_sample
-      #     bazel build //:hello --compilation_mode=${BAZEL_MODE}
-      #     ${{ inputs.run_tests && 'bazel test //...' || 'echo skip tests' }}
-
-      - name: Step9: 成果物を収集（Artifacts用）
+      - name: "Collect artifacts"
         if: ${{ always() }}
         run: |
-          mkdir -p dist/logs
+          mkdir -p dist
           cp -f build/hello build/hello_cpp dist/ 2>/dev/null || true
-          if [ -d bazel-bin ]; then tar -czf dist/bazel-bin.tgz bazel-bin; fi
-          if [ -d reports ]; then cp -r reports dist/; fi
-          echo "RUN_ID=${{ github.run_id }}" > dist/logs/meta.txt
-          echo "SHA=${{ github.sha }}" >> dist/logs/meta.txt
-          echo "SHA_SHORT=${GITHUB_SHA_SHORT}" >> dist/logs/meta.txt
-          echo "ENV=${ENVIRONMENT}" >> dist/logs/meta.txt
 
-      - name: Step10: Upload Artifacts（デプロイ先: artifact）
-        if: ${{ env.ENVIRONMENT == 'artifact' }}
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ github.run_number }}-${{ env.GITHUB_SHA_SHORT }}
-          path: dist/**
+          name: "artifact-${{ github.run_number }}"
+          path: "dist/**"
           if-no-files-found: error
-          retention-days: ${{ fromJSON(inputs.retention_days || '7') }}
-
-      # - name: Host Deploy（必要なら再有効化）
-      #   if: ${{ env.ENVIRONMENT != 'artifact' && fromJSON(env.DEPLOY_TO_HOST || 'false') }}
-      #   run: rsync -av dist/ /mnt/devops/artifacts/
+          retention-days: 7
